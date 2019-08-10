@@ -250,7 +250,7 @@ func ExecuteScalarStr(_db *sql.DB, sql string, columnIndex int) string {
 func ExecuteScalarint64(_db *sql.DB, sql string, columnIndex int) int64 {
 	dt, err := QueryDataTable(_db, sql)
 	if err != nil {
-		log.Error("ExecuteScalarStr:tttt:%v", err)
+		log.Error("ExecuteScalarStr:aaaa:%v", err)
 		return 0
 	}
 	for _, v := range dt.DataRows {
