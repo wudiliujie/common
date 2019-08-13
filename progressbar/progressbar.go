@@ -188,9 +188,9 @@ func NewOptions64(max int64, options ...Option) *ProgressBar {
 		config: config{
 			writer:           os.Stdout,
 			theme:            defaultTheme,
-			width:            40,
+			width:            10,
 			max:              max,
-			throttleDuration: 0 * time.Nanosecond,
+			throttleDuration: 30 * time.Millisecond,
 		},
 	}
 
