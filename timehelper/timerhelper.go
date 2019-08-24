@@ -9,6 +9,10 @@ func GetNowDateInt() int32 {
 	now := time.Now()
 	return int32(now.Year()*10000 + int(now.Month())*100 + now.Day())
 }
+func GetNowDayInt() int32 {
+	now := time.Now()
+	return int32(now.Hour()*10000 + int(now.Minute())*100 + now.Second())
+}
 func GetNowTimeInt() int32 {
 	now := time.Now()
 	return int32(now.Hour()*10000 + int(now.Minute())*100 + now.Second())
@@ -55,6 +59,9 @@ func TimeToStr(t time.Time) string {
 func TimeStampToStr(timestamp int64) string {
 	tm := time.Unix(timestamp, 0)
 	return tm.Format("2006-01-02 15:04:05")
+}
+func GetNowIntStr() string {
+	return time.Now().Format("20060102150405")
 }
 func SubDays(t1, t2 time.Time) int32 {
 	t1 = time.Date(t1.Year(), t1.Month(), t1.Day(), 0, 0, 0, 0, time.Local)

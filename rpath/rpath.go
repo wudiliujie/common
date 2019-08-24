@@ -40,6 +40,12 @@ func FileExists(name string) bool {
 	_, err := os.Stat(name)
 	return !os.IsNotExist(err)
 }
+func CheckAndCreatePath(name string) error {
+	if !FileExists(name) {
+		return Mkdir(name, 0777)
+	}
+	return nil
+}
 
 func CopyFile(dstName, srcName string) (written int64, err error) {
 	src, err := os.Open(srcName)
