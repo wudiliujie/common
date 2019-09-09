@@ -75,6 +75,11 @@ func GetNowSceond(timestamp int64) int64 {
 	return int64(now.Hour()*3600 + now.Minute()*60 + now.Second())
 }
 
+func GetTimeFromTimestamp(timestamp int64) time.Time {
+	return time.Unix(timestamp, 0)
+
+}
+
 //获取当前秒数
 func GetNowDayTimestamp(timestamp int64) int64 {
 	return timestamp/86400*86400 - 28800
