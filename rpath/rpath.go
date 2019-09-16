@@ -2,6 +2,7 @@ package rpath
 
 import (
 	"fmt"
+	"github.com/wudiliujie/common/log"
 	"io"
 	"io/ioutil"
 	"os"
@@ -30,6 +31,12 @@ func WalkDir(dirPth, suffix string) (files []string, err error) {
 	return files, err
 }
 func Mkdir(dirPath string, dirMode os.FileMode) error {
+	dirPath = strings.Replace(dirPath, "/", "\\", -1)
+	spath := strings.LastIndex(dirPath, "\\")
+	dirPath = dirPath[0:spath]
+	if FileExists(dirPath) {
+		return nil
+	}
 	err := os.MkdirAll(dirPath, dirMode)
 	if err != nil {
 		return fmt.Errorf("%s: making directory: %v", dirPath, err)
@@ -52,7 +59,12 @@ func CopyFile(dstName, srcName string) (written int64, err error) {
 	if err != nil {
 		return
 	}
+
 	defer src.Close()
+	err = Mkdir(dstName, 0777)
+	if err != nil {
+		log.Error("%v", err)
+	}
 	//路径不存在，直接创建路径
 	dst, err := os.OpenFile(dstName, os.O_WRONLY|os.O_CREATE, 0777)
 	if err != nil {
