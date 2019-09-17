@@ -8,10 +8,14 @@ import (
 )
 
 var CloseTag chan int32
+var IsStartConsole = true
 
 func Init(closeTag chan int32) {
 	CloseTag = closeTag
-	go run()
+	if IsStartConsole {
+		go run()
+	}
+
 }
 
 func Destroy() {
