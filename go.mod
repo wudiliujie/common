@@ -7,6 +7,8 @@ require (
 	github.com/bsm/sarama-cluster v2.1.15+incompatible
 	github.com/go-redis/redis v6.15.2+incompatible
 	github.com/go-sql-driver/mysql v1.4.1
+	github.com/golang/protobuf v1.3.1
+	github.com/gorilla/websocket v1.4.1
 	github.com/kr/pretty v0.1.0 // indirect
 	github.com/onsi/ginkgo v1.9.0 // indirect
 	github.com/onsi/gomega v1.6.0 // indirect
