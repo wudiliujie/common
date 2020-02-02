@@ -8,11 +8,11 @@ import (
 	"io"
 	"log"
 	"os"
-	"path/filepath"
+	"path"
 )
 
 //带进度条的压缩
-func Zip(zipFile string, fileList []string) error {
+func Zip(zipFile string, basePath string, fileList []string) error {
 
 	totalSize := int64(0)
 	for _, v := range fileList {
@@ -34,9 +34,10 @@ func Zip(zipFile string, fileList []string) error {
 			log.Fatalln(err)
 		}
 	}()
-
+	l := len(basePath)
 	for _, fileName := range fileList {
-		pgb.Describe(filepath.Base(fileName))
+		//这里添加上基础路径
+		pgb.Describe(fileName[l:])
 		fr, err := os.Open(fileName)
 		if err != nil {
 			return err
@@ -49,6 +50,7 @@ func Zip(zipFile string, fileList []string) error {
 		}
 		// 写入文件的头信息
 		fh, err := zip.FileInfoHeader(fi)
+		fh.Name = fileName[l:]
 		if err != nil {
 			_ = fr.Close()
 			return err
@@ -121,28 +123,30 @@ func copyBuffer(dst io.Writer, src io.Reader, buf []byte, pgb *progressbar.Progr
 	return written, err
 }
 
-func Unzip(zipFile string) error {
+func Unzip(zipFile string, targetPath string) error {
 	zr, err := zip.OpenReader(zipFile)
 	defer zr.Close()
 	if err != nil {
 		return err
 	}
 
+	pgb := progressbar.NewOptions(len(zr.File), progressbar.OptionShowIts())
 	for _, file := range zr.File {
 		// 如果是目录，则创建目录
-		if file.FileInfo().IsDir() {
-			if err = os.MkdirAll(file.Name, file.Mode()); err != nil {
-				return err
-			}
-			continue
+		pgb.Describe(file.Name)
+		filename := targetPath + file.Name
+		err = os.MkdirAll(path.Dir(filename), 0755)
+		if err != nil {
+			return err
 		}
+		_ = pgb.Add(1)
 		// 获取到 Reader
 		fr, err := file.Open()
 		if err != nil {
 			return err
 		}
 
-		fw, err := os.OpenFile(file.Name, os.O_CREATE|os.O_RDWR|os.O_TRUNC, file.Mode())
+		fw, err := os.OpenFile(targetPath+file.Name, os.O_CREATE|os.O_RDWR|os.O_TRUNC, file.Mode())
 		if err != nil {
 			return err
 		}
@@ -153,5 +157,6 @@ func Unzip(zipFile string) error {
 		fw.Close()
 		fr.Close()
 	}
+	fmt.Println()
 	return nil
 }
