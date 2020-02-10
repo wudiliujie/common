@@ -8,7 +8,7 @@ import (
 type Agent interface {
 	network.Agent
 	GetId() int32
-	WriteMsg(idx uint16, msg interface{})
+	WriteMsg(idx uint16, msg network.IMessage)
 	LocalAddr() net.Addr
 	RemoteAddr() net.Addr
 	Ip() string

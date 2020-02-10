@@ -7,14 +7,14 @@ const (
 	MsgType_Proto
 )
 
-type Processor interface {
+type IMessage interface {
+	GetId() uint16
+}
+type IProcessor interface {
+
 	// must goroutine safe
-	Route(msg interface{}, userData interface{}) error
-	//获取消息编号
-	GetMsgId(msg interface{}) int32
+	Unmarshal(data []byte) (IMessage, error)
 	// must goroutine safe
-	Unmarshal(data []byte) (interface{}, error)
-	// must goroutine safe
-	Marshal(msg interface{}) ([]byte, error)
+	Marshal(msg IMessage) ([]byte, error)
 	GetMsgType() MsgType
 }

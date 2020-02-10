@@ -22,7 +22,7 @@ type Gate struct {
 	MaxConnNum      int
 	PendingWriteNum int
 	MaxMsgLen       uint32
-	Processor       network.Processor
+	Processor       network.IProcessor
 
 	// websocket
 	WSAddr      string
@@ -42,7 +42,7 @@ type Gate struct {
 	ChanRPCLen         int
 	OnAgentInit        func(Agent)
 	OnAgentDestroy     func(Agent)
-	OnReceiveMsg       func(agent Agent, msgId int32, pck interface{})
+	OnReceiveMsg       func(agent Agent, msgId uint16, pck interface{})
 }
 
 func newAgent(conn network.Conn, tag interface{}) network.Agent {
@@ -190,13 +190,11 @@ func (a *agent) Run() {
 			//索引:%v
 			a.idx = binary.BigEndian.Uint16(data)
 			msg, err := a.gate.Processor.Unmarshal(data[2:])
-			//msg, err := a.gate.Processor.Unmarshal(data)
 			if err != nil {
 				return err
 			}
-			msgId := a.gate.Processor.GetMsgId(msg)
 			if a.gate.OnReceiveMsg != nil {
-				a.gate.OnReceiveMsg(a, msgId, msg)
+				a.gate.OnReceiveMsg(a, msg.GetId(), msg)
 			}
 		}
 		return nil
@@ -225,28 +223,19 @@ func (a *agent) OnClose() {
 	}
 }
 
-func (a *agent) WriteMsg(idx uint16, msg interface{}) {
+func (a *agent) WriteMsg(idx uint16, msg network.IMessage) {
 	//这里缓存
 	id := pool.GetBytesLen(2)
 	binary.BigEndian.PutUint16(id, idx)
 	if a.gate.Processor != nil {
-		switch msg.(type) {
-		case string:
-			id = append(id, []byte(msg.(string))...)
-			break
-		case []uint8:
-			id = append(id, msg.([]uint8)...)
-			break
-		default:
-			data, err := a.gate.Processor.Marshal(msg)
-			if err != nil {
-				log.Error("marshal message %v error: %v  %s", reflect.TypeOf(msg), err, debug.Stack())
-				return
-			}
-
-			id = append(id, data...)
-			pool.PutBytes(data)
+		data, err := a.gate.Processor.Marshal(msg)
+		if err != nil {
+			log.Error("marshal message %v error: %v  %s", reflect.TypeOf(msg), err, debug.Stack())
+			return
 		}
+
+		id = append(id, data...)
+		pool.PutBytes(data)
 
 	}
 	err := a.conn.WriteMsg(id)
