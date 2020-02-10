@@ -17,6 +17,9 @@ func (writer *Writer) AddLine(msg string) {
 	if strings.HasSuffix(msg, "});") {
 		writer.PrevCount--
 	}
+	if writer.PrevCount < 0 {
+		writer.PrevCount = 0
+	}
 	if writer.PrevCount > 0 {
 		writer.Content += strings.Repeat("\t", writer.PrevCount)
 	}
