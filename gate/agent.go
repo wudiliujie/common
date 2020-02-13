@@ -16,14 +16,14 @@ type Agent interface {
 	Destroy()
 	UserData() interface{}
 	SetUserData(data interface{})
-	Gate() *Gate
+
 	GetLogin() bool
 	SetLogin()
 	Call1(userId int64, pck interface{}) (string, error)
 	AddHeart()
 	ResetHeart()
 	GetHeart() int32
-	GetTag() interface{}
-	SetTag(interface{})
+	GetTag() int64
+	SetTag(int64)
 	GetIdx() uint16
 }

@@ -13,15 +13,6 @@ var (
 )
 
 func Run(mods ...Module) {
-	// logger
-	//if conf.LogLevel != "" {
-	//	logger, err := log.New(conf.ServerName, conf.LogLevel, conf.LogPath, conf.LogFlag)
-	//	if err != nil {
-	//		panic(err)
-	//	}
-	//	log.Export(logger)
-	//	defer logger.Close()
-	//}
 
 	log.Release("common %v starting up", 1.0)
 

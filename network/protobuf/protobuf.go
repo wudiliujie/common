@@ -72,7 +72,6 @@ func (p *Processor) Unmarshal(data []byte) (network.IMessage, error) {
 
 // goroutine safe
 func (p *Processor) Marshal(msg network.IMessage) ([]byte, error) {
-
 	id := pool.GetBytesLen(2)
 	if p.littleEndian {
 		binary.LittleEndian.PutUint16(id, msg.GetId())
@@ -81,6 +80,21 @@ func (p *Processor) Marshal(msg network.IMessage) ([]byte, error) {
 	}
 	//这里可用缓存？
 	buff := proto.NewBuffer(id)
+	err := buff.Marshal(msg.(proto.Message))
+	return buff.Bytes(), err
+}
+
+// goroutine safe
+func (p *Processor) MarshalBytes(buffer []byte, msg network.IMessage) ([]byte, error) {
+	if p.littleEndian {
+		buffer = append(buffer, uint8(msg.GetId()), uint8(msg.GetId()>>8))
+		//binary.LittleEndian.PutUint16(id, msg.GetId())
+	} else {
+		buffer = append(buffer, uint8(msg.GetId()>>8), uint8(msg.GetId()))
+		//binary.BigEndian.PutUint16(id, msg.GetId())
+	}
+	//这里可用缓存？
+	buff := proto.NewBuffer(buffer)
 	err := buff.Marshal(msg.(proto.Message))
 	return buff.Bytes(), err
 }

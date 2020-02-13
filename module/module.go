@@ -9,6 +9,8 @@ import (
 
 var LenStackBuf = 4096
 
+const OnInitComplete = "OnInitComplete"
+
 type Module interface {
 	OnInit()
 	OnDestroy()
@@ -55,6 +57,7 @@ func Init() {
 		m.wg.Add(1)
 		go run(m)
 	}
+	OnChanRpcEvent(OnInitComplete)
 }
 
 func Destroy() {

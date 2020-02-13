@@ -16,12 +16,12 @@ type WSClient struct {
 	MaxMsgLen        uint32
 	HandshakeTimeout time.Duration
 	AutoReconnect    bool
-	NewAgent         func(*WSConn, interface{}) Agent
+	NewAgent         func(*WSConn, int64) Agent
 	dialer           websocket.Dialer
 	conns            WebsocketConnSet
 	wg               sync.WaitGroup
 	closeFlag        bool
-	Tag              interface{}
+	Tag              int64
 }
 
 func (client *WSClient) Start() {
@@ -84,7 +84,7 @@ func (client *WSClient) dial() *websocket.Conn {
 	}
 }
 
-func (client *WSClient) connect(tag interface{}) {
+func (client *WSClient) connect(tag int64) {
 	defer client.wg.Done()
 reconnect:
 	conn := client.dial()

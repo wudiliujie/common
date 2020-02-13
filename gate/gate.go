@@ -2,7 +2,6 @@ package gate
 
 import (
 	"encoding/binary"
-	"errors"
 	"github.com/wudiliujie/common/log"
 	"github.com/wudiliujie/common/module"
 	"github.com/wudiliujie/common/network"
@@ -22,8 +21,6 @@ type Gate struct {
 	MaxConnNum      int
 	PendingWriteNum int
 	MaxMsgLen       uint32
-	Processor       network.IProcessor
-
 	// websocket
 	WSAddr      string
 	HTTPTimeout time.Duration
@@ -40,30 +37,26 @@ type Gate struct {
 	TimerDispatcherLen int
 	AsynCallLen        int
 	ChanRPCLen         int
-	OnAgentInit        func(Agent)
-	OnAgentDestroy     func(Agent)
-	OnReceiveMsg       func(agent Agent, msgId uint16, pck interface{})
+	NetEvent           *NetEvent
+}
+type NetEvent struct {
+	OnAgentInit    func(Agent)
+	OnAgentDestroy func(Agent)
+	OnReceiveMsg   func(agent Agent, data []byte)
+	Processor      network.IProcessor
 }
 
-func newAgent(conn network.Conn, tag interface{}) network.Agent {
+func newAgent(conn network.Conn, g *NetEvent, tag int64) network.Agent {
 	a := &agent{conn: conn}
 	a.tag = tag
-	a.gate = ThisGate
-	if ThisGate.Processor.GetMsgType() == network.MsgType_Json {
-		conn.LocalAddr()
-	}
+	a.netEvent = g
 	//如果是json，消息类型修改为：TextMessage     websocket.BinaryMessage
 	a.id = atomic.AddInt32(&sessionId, 1)
-	if ThisGate == nil {
-
-	}
-	if ThisGate.OnAgentInit != nil {
-		ThisGate.OnAgentInit(a)
+	if a.netEvent.OnAgentInit != nil {
+		a.netEvent.OnAgentInit(a)
 	}
 	return a
 }
-
-var ThisGate *Gate
 
 func (gate *Gate) GetName() string {
 	return "gate"
@@ -81,7 +74,7 @@ func (gate *Gate) Run(closeSig chan bool) {
 		wsServer.CertFile = gate.CertFile
 		wsServer.KeyFile = gate.KeyFile
 		wsServer.NewAgent = func(conn *network.WSConn) network.Agent {
-			return newAgent(conn, int64(0))
+			return newAgent(conn, gate.NetEvent, int64(0))
 		}
 	}
 
@@ -95,7 +88,7 @@ func (gate *Gate) Run(closeSig chan bool) {
 		tcpServer.MaxMsgLen = gate.MaxMsgLen
 		tcpServer.LittleEndian = gate.LittleEndian
 		tcpServer.NewAgent = func(conn *network.TCPConn) network.Agent {
-			return newAgent(conn, int64(0))
+			return newAgent(conn, gate.NetEvent, int64(0))
 		}
 	}
 
@@ -121,14 +114,14 @@ func (gate *Gate) Debug()     {}
 
 type agent struct {
 	conn       network.Conn
-	gate       *Gate
+	netEvent   *NetEvent
 	userData   interface{}
 	module     module.Module
 	id         int32
 	isLogin    bool
 	heartTimes int32
 	agentType  int32
-	tag        interface{}
+	tag        int64
 	auto       bool
 	idx        uint16 //需要删除缓存的包
 }
@@ -145,11 +138,11 @@ func (a *agent) SetAutoReconnect(v bool) {
 	a.auto = v
 }
 
-func (a *agent) SetTag(tag interface{}) {
+func (a *agent) SetTag(tag int64) {
 	a.tag = tag
 }
 
-func (a *agent) GetTag() interface{} {
+func (a *agent) GetTag() int64 {
 	return a.tag
 }
 
@@ -179,26 +172,6 @@ func (a *agent) Run() {
 		closeSig <- true
 	}()
 
-	handleMsgData := func(args []interface{}) error {
-		if a.gate.Processor != nil {
-			data := args[0].([]byte)
-			if len(data) < 4 {
-				log.Debug("长度不够")
-				return errors.New("长度不够")
-			}
-			//log.Debug("*******************%v", string(data))
-			//索引:%v
-			a.idx = binary.BigEndian.Uint16(data)
-			msg, err := a.gate.Processor.Unmarshal(data[2:])
-			if err != nil {
-				return err
-			}
-			if a.gate.OnReceiveMsg != nil {
-				a.gate.OnReceiveMsg(a, msg.GetId(), msg)
-			}
-		}
-		return nil
-	}
 	for {
 		data, err := a.conn.ReadMsg()
 
@@ -207,38 +180,32 @@ func (a *agent) Run() {
 			log.Debug("read message: %v", err)
 			break
 		}
-
-		err = handleMsgData([]interface{}{data})
-		if err != nil {
-			log.Debug("handle message: %v", err)
-			//break
+		if a.netEvent.OnReceiveMsg != nil {
+			a.netEvent.OnReceiveMsg(a, data)
 		}
 	}
 }
 
 func (a *agent) OnClose() {
-	if a.gate.OnAgentDestroy != nil {
+	if a.netEvent.OnAgentDestroy != nil {
 		//log.Debug("close agent")
-		a.gate.OnAgentDestroy(a)
+		a.netEvent.OnAgentDestroy(a)
 	}
 }
 
 func (a *agent) WriteMsg(idx uint16, msg network.IMessage) {
 	//这里缓存
-	id := pool.GetBytesLen(2)
-	binary.BigEndian.PutUint16(id, idx)
-	if a.gate.Processor != nil {
-		data, err := a.gate.Processor.Marshal(msg)
+	buff := pool.GetBytesLen(2)
+	binary.BigEndian.PutUint16(buff, idx)
+	var err error
+	if a.netEvent.Processor != nil {
+		buff, err = a.netEvent.Processor.MarshalBytes(buff, msg)
 		if err != nil {
 			log.Error("marshal message %v error: %v  %s", reflect.TypeOf(msg), err, debug.Stack())
 			return
 		}
-
-		id = append(id, data...)
-		pool.PutBytes(data)
-
 	}
-	err := a.conn.WriteMsg(id)
+	err = a.conn.WriteMsg(buff)
 	if err != nil {
 		log.Error("write message %v error: %v", reflect.TypeOf(msg), err)
 	}
@@ -275,9 +242,7 @@ func (a *agent) UserData() interface{} {
 func (a *agent) SetUserData(data interface{}) {
 	a.userData = data
 }
-func (a *agent) Gate() *Gate {
-	return a.gate
-}
+
 func (a *agent) GetId() int32 {
 	return a.id
 }

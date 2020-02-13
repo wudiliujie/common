@@ -5,11 +5,11 @@ import (
 	"time"
 )
 
-func Connect(addr string, tag interface{}) {
+func Connect(addr string, netEvent *NetEvent, tag int64) {
 	client := new(network.WSClient)
 	client.Addr = "ws://" + addr
-	client.NewAgent = func(conn *network.WSConn, tag interface{}) network.Agent {
-		return newAgent(conn, tag)
+	client.NewAgent = func(conn *network.WSConn, tag int64) network.Agent {
+		return newAgent(conn, netEvent, tag)
 	}
 	client.ConnNum = 1
 	client.ConnectInterval = 5 * time.Second

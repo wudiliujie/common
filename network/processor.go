@@ -17,4 +17,5 @@ type IProcessor interface {
 	// must goroutine safe
 	Marshal(msg IMessage) ([]byte, error)
 	GetMsgType() MsgType
+	MarshalBytes(buffer []byte, msg IMessage) ([]byte, error)
 }
