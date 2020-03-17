@@ -9,7 +9,7 @@ import (
 
 var LenStackBuf = 4096
 
-const OnInitComplete = "OnInitComplete"
+const OnInitComplete = -1
 
 type Module interface {
 	OnInit()
@@ -30,7 +30,7 @@ type module struct {
 }
 
 var mods []*module
-var mapEvent = make(map[string][]*chanRpcEvent)
+var mapEvent = make(map[int][]*chanRpcEvent)
 
 func Register(mi Module) {
 	m := new(module)
@@ -90,11 +90,11 @@ func destroy(m *module) {
 	m.mi.OnDestroy()
 }
 
-func RegisterChanRpcEvent(event string, _server *chanrpc.Server, _f interface{}) {
+func RegisterChanRpcEvent(event int, _server *chanrpc.Server, _f interface{}) {
 	_server.Register(event, _f)
 	mapEvent[event] = append(mapEvent[event], &chanRpcEvent{server: _server, f: _f})
 }
-func OnChanRpcEvent(event string, args ...interface{}) {
+func OnChanRpcEvent(event int, args ...interface{}) {
 	v, ok := mapEvent[event]
 	if ok {
 		for _, f := range v {
