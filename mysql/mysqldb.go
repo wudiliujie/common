@@ -52,3 +52,11 @@ func PubQueryRow(strsql string, args ...interface{}) (*db.DataRow, error) {
 func PubQuery(strsql string, args ...interface{}) ([]*db.DataRow, error) {
 	return db.Query(PubContext, strsql, args...)
 }
+func Exec(query string, args ...interface{}) (sql.Result, error) {
+	//log.Debug("exec:%v", query)
+	return Context.Exec(query, args...)
+}
+func PubExec(query string, args ...interface{}) (sql.Result, error) {
+	//log.Debug("exec:%v", query)
+	return PubContext.Exec(query, args...)
+}
